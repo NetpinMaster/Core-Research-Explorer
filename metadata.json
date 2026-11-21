@@ -1,0 +1,6 @@
+{
+  "name": "CORE Research Explorer",
+  "description": "Angular 20+ scientific research discovery and publication analytics application powered by the CORE API v3.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

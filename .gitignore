@@ -1,0 +1,13 @@
+node_modules/
+.angular/
+out-tsc/
+build/
+dist/
+coverage/
+.playwright-cli/
+.aistudio/
+.DS_Store
+*.log
+.env*
+!.env.example
+

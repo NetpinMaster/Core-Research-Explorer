@@ -1,0 +1,38 @@
+// Responsive breakpoints & accessibility mixins
+
+$bp-tablet: 768px;
+$bp-desktop: 1024px;
+$bp-wide: 1280px;
+
+@mixin respond-above($breakpoint) {
+  @media (min-width: $breakpoint) {
+    @content;
+  }
+}
+
+@mixin focus-visible-ring {
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+}
+
+@mixin container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--space-4);
+
+  @include respond-above($bp-tablet) {
+    padding-inline: var(--space-6);
+  }
+
+  @include respond-above($bp-desktop) {
+    padding-inline: var(--space-8);
+  }
+}
+
+@mixin tabular-numeric {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
