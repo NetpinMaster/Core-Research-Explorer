@@ -1,0 +1,582 @@
+// Print & Save-as-PDF styles for CORE Research Explorer
+// Ensures research results, publication-year chart, and analytics tables format cleanly on paper/PDF.
+
+@page {
+  size: auto;
+  margin: 14mm 12mm;
+}
+
+@media print {
+  // Force ink-friendly light palette even when the user prints from dark mode
+  :root,
+  :root[data-theme='dark'] {
+    color-scheme: light;
+    --color-navy: #0f172a;
+    --color-navy-hover: #0f172a;
+    --color-accent: #1d4ed8;
+    --color-accent-hover: #1d4ed8;
+    --color-accent-subtle: #eff6ff;
+
+    --color-bg: #ffffff;
+    --color-surface: #ffffff;
+    --color-surface-muted: #f8fafc;
+    --color-border: #cbd5e1;
+    --color-border-strong: #94a3b8;
+
+    --color-text-primary: #0f172a;
+    --color-text-secondary: #1e293b;
+    --color-text-muted: #475569;
+
+    --color-success: #15803d;
+    --color-error: #b91c1c;
+    --color-warning: #92400e;
+    --shadow-subtle: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 11pt;
+    line-height: 1.45;
+    min-height: auto !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    break-after: avoid;
+    page-break-after: avoid;
+    color: #0f172a !important;
+  }
+
+  p,
+  li,
+  blockquote {
+    orphans: 3;
+    widows: 3;
+  }
+
+  a {
+    color: #0f172a;
+    text-decoration: none;
+  }
+
+  // Reusable print utility classes
+  .no-print,
+  .print-hidden,
+  .skip-link {
+    display: none !important;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Application Shell & Masthead
+  // ---------------------------------------------------------------------------
+  app-root .app-shell {
+    min-height: auto !important;
+    display: block !important;
+  }
+
+  app-root .app-main {
+    display: block !important;
+  }
+
+  app-header .top-bar {
+    position: static !important;
+    min-height: auto !important;
+    background: #ffffff !important;
+    border-bottom: 1.5pt solid #0f172a !important;
+    padding-bottom: 8pt !important;
+    margin-bottom: 12pt !important;
+  }
+
+  app-header .top-bar__inner {
+    min-height: auto !important;
+    max-width: 100% !important;
+    padding-inline: 0 !important;
+    justify-content: flex-start !important;
+  }
+
+  app-header .top-bar__brand {
+    font-size: 13pt !important;
+    color: #0f172a !important;
+  }
+
+  app-header .top-bar__nav,
+  app-header .top-bar__utilities {
+    display: none !important;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Search Bar & Hero (Keep compact document title, hide interactive controls)
+  // ---------------------------------------------------------------------------
+  app-research-search-bar .hero {
+    background: #ffffff !important;
+    border-bottom: none !important;
+    padding-block: 0 6pt !important;
+  }
+
+  app-research-search-bar .hero__container {
+    max-width: 100% !important;
+    padding-inline: 0 !important;
+  }
+
+  app-research-search-bar .hero__intro {
+    max-width: 100% !important;
+    margin-bottom: 0 !important;
+  }
+
+  app-research-search-bar .hero__title {
+    font-size: 16pt !important;
+    margin-bottom: 0 !important;
+    color: #0f172a !important;
+  }
+
+  app-research-search-bar .hero__subtitle,
+  app-research-search-bar .search-panel,
+  app-research-search-bar .suggestions-menu,
+  app-research-search-bar .history-bar,
+  app-research-search-bar .syntax-guide {
+    display: none !important;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Main Workspace Layout (Single-column document flow, unstick sidebar)
+  // ---------------------------------------------------------------------------
+  app-research-explorer-page .workspace {
+    padding-top: 6pt !important;
+  }
+
+  app-research-explorer-page .workspace__container {
+    max-width: 100% !important;
+    padding-inline: 0 !important;
+  }
+
+  app-research-explorer-page .workspace__grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16pt !important;
+  }
+
+  app-research-explorer-page .workspace__results,
+  app-research-explorer-page .workspace__analytics {
+    position: static !important;
+    top: auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  app-research-explorer-page .workspace__body {
+    margin-top: 10pt !important;
+  }
+
+  app-research-explorer-page .paper-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10pt !important;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Results Toolbar (Preserve query summary & counts, hide sort/export buttons)
+  // ---------------------------------------------------------------------------
+  app-research-results-toolbar .toolbar {
+    display: block !important;
+    padding-bottom: 8pt !important;
+    border-bottom: 1pt solid #94a3b8 !important;
+  }
+
+  app-research-results-toolbar .toolbar__summary {
+    font-size: 10.5pt !important;
+    color: #0f172a !important;
+  }
+
+  app-research-results-toolbar .toolbar__query {
+    font-size: 9.5pt !important;
+    color: #0f172a !important;
+  }
+
+  app-research-results-toolbar .toolbar__meta {
+    font-size: 8.5pt !important;
+    color: #475569 !important;
+  }
+
+  app-research-results-toolbar .toolbar__actions {
+    display: none !important;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Research Paper Cards (Clean page breaks, full abstracts, printable URLs)
+  // ---------------------------------------------------------------------------
+  app-research-paper-card {
+    display: block;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  app-research-paper-card .paper-card {
+    padding: 10pt 12pt !important;
+    gap: 5pt !important;
+    background: #ffffff !important;
+    border: 0.75pt solid #cbd5e1 !important;
+    border-radius: 4pt !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  app-research-paper-card .paper-card__kicker {
+    font-size: 8.5pt !important;
+    color: #475569 !important;
+    gap: 4pt !important;
+  }
+
+  app-research-paper-card .paper-card__year {
+    color: #0f172a !important;
+  }
+
+  app-research-paper-card .paper-card__oa {
+    color: #15803d !important;
+  }
+
+  app-research-paper-card .paper-card__title {
+    font-size: 11pt !important;
+    line-height: 1.3 !important;
+    color: #0f172a !important;
+  }
+
+  app-research-paper-card .paper-card__authors {
+    font-size: 9pt !important;
+    color: #334155 !important;
+  }
+
+  app-research-paper-card .paper-card__abstract {
+    display: block !important;
+    -webkit-line-clamp: unset !important;
+    -webkit-box-orient: initial !important;
+    overflow: visible !important;
+    font-size: 9pt !important;
+    line-height: 1.45 !important;
+    color: #1e293b !important;
+  }
+
+  app-research-paper-card .paper-card__footer {
+    padding-top: 6pt !important;
+    gap: 6pt !important;
+    border-top: 0.5pt solid #cbd5e1 !important;
+    font-size: 8pt !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  app-research-paper-card .paper-card__identifiers {
+    color: #475569 !important;
+  }
+
+  app-research-paper-card .paper-card__action-btn {
+    display: none !important;
+  }
+
+  app-research-paper-card .paper-card__links {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 2pt !important;
+  }
+
+  app-research-paper-card .paper-card__link {
+    font-size: 8pt !important;
+    font-weight: 500 !important;
+    color: #1e293b !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+
+    &[href^='http']::after {
+      content: ': ' attr(href);
+      font-family: var(--font-mono);
+      font-size: 7.5pt;
+      font-weight: 400;
+      color: #475569;
+      word-break: break-all;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Analytics Page & Panel
+  // ---------------------------------------------------------------------------
+  app-analytics-page .analytics-page {
+    padding-block: 4pt !important;
+  }
+
+  app-analytics-page .analytics-page__container {
+    max-width: 100% !important;
+    padding-inline: 0 !important;
+    gap: 12pt !important;
+  }
+
+  app-analytics-page .analytics-page__title {
+    font-size: 16pt !important;
+    color: #0f172a !important;
+  }
+
+  app-analytics-page .analytics-page__subtitle {
+    max-width: 100% !important;
+    font-size: 9.5pt !important;
+    color: #334155 !important;
+  }
+
+  app-analytics-page .analytics-page__back {
+    display: none !important;
+  }
+
+  app-analytics-panel {
+    display: block;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  app-analytics-panel .analytics-panel {
+    background: #ffffff !important;
+    border: 0.75pt solid #94a3b8 !important;
+    border-radius: 4pt !important;
+    padding: 12pt !important;
+    gap: 10pt !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  app-analytics-panel .analytics-panel__title {
+    font-size: 12pt !important;
+    color: #0f172a !important;
+  }
+
+  app-analytics-panel .analytics-panel__scope {
+    font-size: 8.5pt !important;
+    color: #475569 !important;
+  }
+
+  // Horizontal 4-column KPI strip for compact, balanced PDF presentation
+  app-analytics-panel .kpi-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    border-top: 0.75pt solid #cbd5e1 !important;
+    border-bottom: 0.75pt solid #cbd5e1 !important;
+  }
+
+  app-analytics-panel .kpi-grid__item {
+    padding: 6pt 8pt !important;
+    border-bottom: none !important;
+    border-right: 0.5pt solid #cbd5e1 !important;
+
+    &:first-child {
+      padding-left: 0 !important;
+    }
+
+    &:last-child {
+      border-right: none !important;
+      padding-right: 0 !important;
+    }
+  }
+
+  app-analytics-panel .kpi-grid__label {
+    font-size: 7.5pt !important;
+    color: #475569 !important;
+  }
+
+  app-analytics-panel .kpi-grid__value {
+    font-size: 12pt !important;
+    color: #0f172a !important;
+  }
+
+  app-analytics-panel .analytics-panel__chart-area {
+    min-height: auto !important;
+    justify-content: flex-start !important;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Publication Year Chart (Crisp canvas sizing + visible breakdown table)
+  // ---------------------------------------------------------------------------
+  app-publication-year-chart .year-chart {
+    gap: 10pt !important;
+  }
+
+  app-publication-year-chart .year-chart__canvas-wrap {
+    height: 220pt !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  app-publication-year-chart .year-chart--expanded .year-chart__canvas-wrap {
+    height: 240pt !important;
+  }
+
+  app-publication-year-chart .year-chart__canvas {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    margin-inline: auto !important;
+  }
+
+  app-publication-year-chart .year-chart__meta {
+    padding-top: 6pt !important;
+    gap: 3pt !important;
+    border-top: 0.5pt solid #cbd5e1 !important;
+  }
+
+  app-publication-year-chart .year-chart__peak {
+    font-size: 9pt !important;
+    color: #1e293b !important;
+  }
+
+  app-publication-year-chart .year-chart__note {
+    font-size: 8pt !important;
+    color: #475569 !important;
+  }
+
+  app-publication-year-chart .year-chart__table-controls {
+    display: none !important;
+  }
+
+  // Reveal the accessible publication-year breakdown table in print/PDF output
+  app-publication-year-chart .year-chart__table-wrap,
+  app-publication-year-chart .year-chart__table-wrap.sr-only {
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 4pt 0 0 !important;
+    overflow: visible !important;
+    clip: auto !important;
+    clip-path: none !important;
+    white-space: normal !important;
+    border: 0 !important;
+  }
+
+  app-publication-year-chart .year-chart__table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 8.5pt !important;
+
+    caption {
+      font-size: 9pt !important;
+      color: #0f172a !important;
+      padding-bottom: 4pt !important;
+    }
+
+    thead {
+      display: table-header-group;
+    }
+
+    tr {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    th,
+    td {
+      padding: 4pt 6pt !important;
+      border-bottom: 0.5pt solid #cbd5e1 !important;
+      color: #1e293b !important;
+    }
+
+    thead th {
+      background-color: #f1f5f9 !important;
+      color: #0f172a !important;
+      border-top: 0.75pt solid #94a3b8 !important;
+      border-bottom: 0.75pt solid #94a3b8 !important;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Paper Detail Dialog (If open during print, render cleanly without clipping)
+  // ---------------------------------------------------------------------------
+  app-paper-detail-dialog .dialog-backdrop {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin-top: 12pt !important;
+    display: block !important;
+  }
+
+  app-paper-detail-dialog .dialog-panel {
+    width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    border: 1pt solid #0f172a !important;
+    border-radius: 4pt !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  app-paper-detail-dialog .dialog-panel__body {
+    overflow: visible !important;
+    padding: 12pt !important;
+  }
+
+  app-paper-detail-dialog .dialog-panel__close,
+  app-paper-detail-dialog .dialog-panel__copy {
+    display: none !important;
+  }
+
+  // ---------------------------------------------------------------------------
+  // State Feedback & Loading Skeletons
+  // ---------------------------------------------------------------------------
+  app-paper-card-skeleton,
+  app-analytics-panel .chart-placeholder {
+    display: none !important;
+  }
+
+  app-state-feedback button {
+    display: none !important;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Compact Print Attribution Footer
+  // ---------------------------------------------------------------------------
+  app-footer .app-footer {
+    margin-top: 16pt !important;
+    padding-block: 8pt 0 !important;
+    border-top: 0.75pt solid #94a3b8 !important;
+    background: #ffffff !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  app-footer .app-footer__inner {
+    max-width: 100% !important;
+    padding-inline: 0 !important;
+    flex-direction: row !important;
+    align-items: baseline !important;
+    justify-content: space-between !important;
+    gap: 16pt !important;
+    font-size: 8pt !important;
+    color: #475569 !important;
+  }
+
+  app-footer .app-footer__primary {
+    flex: 1 1 auto !important;
+  }
+
+  app-footer .app-footer__attribution {
+    flex: 0 1 auto !important;
+    text-align: right !important;
+  }
+
+  app-footer .app-footer__brand {
+    color: #0f172a !important;
+  }
+}

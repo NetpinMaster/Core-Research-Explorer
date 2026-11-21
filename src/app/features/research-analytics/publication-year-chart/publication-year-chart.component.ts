@@ -36,7 +36,17 @@ interface ChartPalette {
   readonly fontMono: string;
 }
 
-function readChartPalette(): ChartPalette {
+function isPrintMediaActive(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return false;
+  }
+  return window.matchMedia('print').matches;
+}
+
+function readChartPalette(forcePrint = false): ChartPalette {
+  const fontSansFallback = "'Plus Jakarta Sans', sans-serif";
+  const fontMonoFallback = "'IBM Plex Mono', monospace";
+
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     return {
       barFill: '#2563eb',
@@ -45,8 +55,8 @@ function readChartPalette(): ChartPalette {
       tickText: '#475569',
       tooltipBg: '#14213d',
       tooltipText: '#ffffff',
-      fontSans: "'Plus Jakarta Sans', sans-serif",
-      fontMono: "'IBM Plex Mono', monospace",
+      fontSans: fontSansFallback,
+      fontMono: fontMonoFallback,
     };
   }
 
@@ -55,6 +65,19 @@ function readChartPalette(): ChartPalette {
     const value = styles.getPropertyValue(name).trim();
     return value.length > 0 ? value : fallback;
   };
+
+  if (forcePrint || isPrintMediaActive()) {
+    return {
+      barFill: '#1d4ed8',
+      barHover: '#1d4ed8',
+      gridLine: '#cbd5e1',
+      tickText: '#1e293b',
+      tooltipBg: '#0f172a',
+      tooltipText: '#ffffff',
+      fontSans: readVar('--font-sans', fontSansFallback),
+      fontMono: readVar('--font-mono', fontMonoFallback),
+    };
+  }
 
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
@@ -65,8 +88,8 @@ function readChartPalette(): ChartPalette {
     tickText: readVar('--color-text-secondary', '#475569'),
     tooltipBg: isDark ? '#0f172a' : readVar('--color-navy', '#14213d'),
     tooltipText: '#f8fafc',
-    fontSans: readVar('--font-sans', "'Plus Jakarta Sans', sans-serif"),
-    fontMono: readVar('--font-mono', "'IBM Plex Mono', monospace"),
+    fontSans: readVar('--font-sans', fontSansFallback),
+    fontMono: readVar('--font-mono', fontMonoFallback),
   };
 }
 
@@ -286,6 +309,7 @@ export class PublicationYearChartComponent {
 
   protected readonly showTable = signal<boolean>(false);
   private readonly themeRevision = signal<number>(0);
+  private readonly printMode = signal<boolean>(false);
 
   protected readonly series = computed(() => buildPublicationYearSeries(this.distribution()));
 
@@ -315,11 +339,42 @@ export class PublicationYearChartComponent {
       this.destroyRef.onDestroy(() => observer.disconnect());
     }
 
+    if (typeof window !== 'undefined') {
+      const handleBeforePrint = (): void => {
+        this.printMode.set(true);
+        this.themeRevision.update((value) => value + 1);
+        this.chartInstance?.resize();
+      };
+      const handleAfterPrint = (): void => {
+        this.printMode.set(false);
+        this.themeRevision.update((value) => value + 1);
+        this.chartInstance?.resize();
+      };
+
+      window.addEventListener('beforeprint', handleBeforePrint);
+      window.addEventListener('afterprint', handleAfterPrint);
+
+      const printMedia =
+        typeof window.matchMedia === 'function' ? window.matchMedia('print') : null;
+      const handleMediaChange = (event: MediaQueryListEvent): void => {
+        this.printMode.set(event.matches);
+        this.themeRevision.update((value) => value + 1);
+      };
+      printMedia?.addEventListener?.('change', handleMediaChange);
+
+      this.destroyRef.onDestroy(() => {
+        window.removeEventListener('beforeprint', handleBeforePrint);
+        window.removeEventListener('afterprint', handleAfterPrint);
+        printMedia?.removeEventListener?.('change', handleMediaChange);
+      });
+    }
+
     effect(() => {
       const canvasEl = this.canvasRef()?.nativeElement;
       const currentSeries = this.series();
       const isExpanded = this.expanded();
-      // Track theme changes so colors update automatically when light/dark mode toggles.
+      const isPrinting = this.printMode();
+      // Track theme & print changes so colors and layout adapt automatically.
       this.themeRevision();
 
       if (!canvasEl || currentSeries.labels.length === 0) {
@@ -327,7 +382,7 @@ export class PublicationYearChartComponent {
         return;
       }
 
-      this.renderOrUpdateChart(canvasEl, currentSeries, isExpanded);
+      this.renderOrUpdateChart(canvasEl, currentSeries, isExpanded, isPrinting);
     });
 
     this.destroyRef.onDestroy(() => {
@@ -342,7 +397,8 @@ export class PublicationYearChartComponent {
   private renderOrUpdateChart(
     canvasEl: HTMLCanvasElement,
     series: ReturnType<typeof buildPublicationYearSeries>,
-    isExpanded: boolean
+    isExpanded: boolean,
+    isPrinting: boolean
   ): void {
     let context: CanvasRenderingContext2D | null = null;
     try {
@@ -356,7 +412,7 @@ export class PublicationYearChartComponent {
       return;
     }
 
-    const palette = readChartPalette();
+    const palette = readChartPalette(isPrinting);
     const config = this.buildChartConfig(series, palette, isExpanded);
 
     if (this.chartInstance) {
@@ -364,7 +420,10 @@ export class PublicationYearChartComponent {
       if (config.options) {
         this.chartInstance.options = config.options;
       }
-      this.chartInstance.update(prefersReducedMotion() ? 'none' : undefined);
+      if (isPrinting) {
+        this.chartInstance.resize();
+      }
+      this.chartInstance.update(isPrinting || prefersReducedMotion() ? 'none' : undefined);
       return;
     }
 

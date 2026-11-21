@@ -63,4 +63,29 @@ describe('PublicationYearChartComponent', () => {
     expect(wrap?.classList.contains('sr-only')).toBe(false);
     expect(toggleBtn?.getAttribute('aria-expanded')).toBe('true');
   });
+
+  it('handles beforeprint and afterprint lifecycle events cleanly', () => {
+    const addSpy = vi.spyOn(window, 'addEventListener');
+    const removeSpy = vi.spyOn(window, 'removeEventListener');
+
+    const localFixture = TestBed.createComponent(PublicationYearChartComponent);
+    localFixture.componentRef.setInput('distribution', [
+      { year: 2022, count: 4 },
+      { year: 2024, count: 6 },
+    ]);
+    localFixture.componentRef.setInput('datedCount', 10);
+    localFixture.detectChanges();
+
+    expect(addSpy).toHaveBeenCalledWith('beforeprint', expect.any(Function));
+    expect(addSpy).toHaveBeenCalledWith('afterprint', expect.any(Function));
+
+    window.dispatchEvent(new Event('beforeprint'));
+    localFixture.detectChanges();
+    window.dispatchEvent(new Event('afterprint'));
+    localFixture.detectChanges();
+
+    localFixture.destroy();
+    expect(removeSpy).toHaveBeenCalledWith('beforeprint', expect.any(Function));
+    expect(removeSpy).toHaveBeenCalledWith('afterprint', expect.any(Function));
+  });
 });
