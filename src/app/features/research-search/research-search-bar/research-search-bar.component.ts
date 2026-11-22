@@ -10,7 +10,11 @@ import {
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import type { SupportedResultLimit } from '../../../core/models/research-paper.model';
 import type { RecentSearchEntry } from '../../../core/services/search-history.service';
-import type { SearchSuggestion } from '../../../shared/utilities/query-suggestions.util';
+import {
+  splitSuggestionDisplay,
+  type SearchSuggestion,
+  type SuggestionDisplayParts,
+} from '../../../shared/utilities/query-suggestions.util';
 
 export interface SearchSubmitPayload {
   readonly query: string;
@@ -82,7 +86,8 @@ const EXAMPLE_QUERIES: readonly SearchExample[] = [
                 maxlength="550"
                 role="combobox"
                 aria-autocomplete="list"
-                aria-controls="search-suggestions-listbox"
+                aria-haspopup="listbox"
+                [attr.aria-controls]="showSuggestionsMenu() ? 'search-suggestions-listbox' : null"
                 [attr.aria-expanded]="showSuggestionsMenu()"
                 [attr.aria-activedescendant]="activeSuggestionId()"
                 (input)="handleQueryInput()"
@@ -112,6 +117,7 @@ const EXAMPLE_QUERIES: readonly SearchExample[] = [
                   </div>
 
                   @for (item of suggestions(); track item.completedQuery; let idx = $index) {
+                    @let parts = formatSuggestionParts(item.completedQuery);
                     <button
                       type="button"
                       class="suggestions-menu__option"
@@ -122,14 +128,39 @@ const EXAMPLE_QUERIES: readonly SearchExample[] = [
                       (mousedown)="selectSuggestion($event, item)"
                       data-testid="search-suggestion-option"
                     >
-                      <span class="suggestions-menu__query">{{ item.completedQuery }}</span>
+                      <span class="suggestions-menu__query">
+                        @if (parts.prefix) {
+                          <span class="suggestions-menu__matched">{{ parts.prefix }}</span>
+                        }
+                        <strong class="suggestions-menu__completion">{{ parts.completion }}</strong>
+                      </span>
                       <span class="suggestions-menu__meta tabular-nums">
                         {{ item.matchCount }} {{ item.matchCount === 1 ? 'work' : 'works' }}
                       </span>
                     </button>
                   }
+
+                  @if (suggestions().length > 0) {
+                    <div class="suggestions-menu__footer" aria-hidden="true">
+                      <span>↑↓ Navigate</span>
+                      <span>·</span>
+                      <span>Enter Select</span>
+                      <span>·</span>
+                      <span>Esc Close</span>
+                    </div>
+                  }
                 </div>
               }
+
+              <span
+                class="sr-only"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+                data-testid="suggestions-live-status"
+              >
+                {{ suggestionsAnnouncement() }}
+              </span>
             </div>
 
             <div class="search-panel__controls">
@@ -153,6 +184,10 @@ const EXAMPLE_QUERIES: readonly SearchExample[] = [
                 class="btn btn--primary"
                 [disabled]="isLoading()"
                 [attr.aria-busy]="isLoading() ? 'true' : null"
+                [attr.aria-label]="
+                  isLoading() ? 'Searching CORE research papers' : 'Search CORE research papers'
+                "
+                data-testid="search-submit-btn"
               >
                 @if (isLoading()) {
                   <span>Searching...</span>
@@ -166,6 +201,8 @@ const EXAMPLE_QUERIES: readonly SearchExample[] = [
                 class="btn btn--secondary"
                 (click)="handleClear()"
                 [disabled]="!hasInputOrActiveQuery() && !validationError() && !isLoading()"
+                aria-label="Clear search query and results"
+                data-testid="search-clear-btn"
               >
                 Clear
               </button>
@@ -179,7 +216,7 @@ const EXAMPLE_QUERIES: readonly SearchExample[] = [
           }
 
           <div class="search-panel__meta" id="search-hint">
-            <div class="examples" aria-label="Example Boolean queries">
+            <div class="examples" role="group" aria-label="Example Boolean queries">
               <span class="examples__label">Examples:</span>
               @for (example of examples; track example.query) {
                 <button
@@ -197,7 +234,7 @@ const EXAMPLE_QUERIES: readonly SearchExample[] = [
               type="button"
               class="syntax-toggle"
               [attr.aria-expanded]="syntaxHelpOpen()"
-              aria-controls="boolean-syntax-help"
+              [attr.aria-controls]="syntaxHelpOpen() ? 'boolean-syntax-help' : null"
               (click)="toggleSyntaxHelp()"
             >
               <span>Search syntax help</span>
@@ -220,7 +257,12 @@ const EXAMPLE_QUERIES: readonly SearchExample[] = [
           </div>
 
           @if (recentSearches().length > 0) {
-            <div class="history-bar" aria-label="Recent research searches" data-testid="recent-searches">
+            <div
+              class="history-bar"
+              role="group"
+              aria-label="Recent research searches"
+              data-testid="recent-searches"
+            >
               <span class="examples__label">Recent:</span>
               @for (entry of recentSearches(); track entry.query) {
                 <button
@@ -433,11 +475,32 @@ const EXAMPLE_QUERIES: readonly SearchExample[] = [
       white-space: nowrap;
     }
 
+    .suggestions-menu__matched {
+      font-weight: 400;
+      color: var(--color-text-secondary);
+    }
+
+    .suggestions-menu__completion {
+      font-weight: 600;
+      color: var(--color-navy);
+    }
+
     .suggestions-menu__meta {
       font-size: 0.75rem;
       color: var(--color-text-muted);
       white-space: nowrap;
       flex-shrink: 0;
+    }
+
+    .suggestions-menu__footer {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-1) var(--space-3);
+      border-top: 1px solid var(--color-border);
+      background-color: var(--color-bg);
+      font-size: 0.7rem;
+      color: var(--color-text-muted);
     }
 
     .search-panel__controls {
@@ -754,6 +817,25 @@ export class ResearchSearchBarComponent {
     const idx = this.highlightedIndex();
     return idx >= 0 && idx < this.suggestions().length ? `search-suggestion-${idx}` : null;
   });
+
+  protected readonly suggestionsAnnouncement = computed(() => {
+    if (!this.showSuggestionsMenu()) {
+      return '';
+    }
+    if (this.isLoadingSuggestions()) {
+      return 'Loading search suggestions from CORE.';
+    }
+    const count = this.suggestions().length;
+    if (count === 0) {
+      return '';
+    }
+    const noun = count === 1 ? 'suggestion' : 'suggestions';
+    return `${count} search ${noun} available. Use up and down arrow keys to navigate.`;
+  });
+
+  protected formatSuggestionParts(completedQuery: string): SuggestionDisplayParts {
+    return splitSuggestionDisplay(completedQuery, this.searchForm.controls.query.value);
+  }
 
   protected readonly searchForm = new FormGroup({
     query: new FormControl<string>('', { nonNullable: true }),

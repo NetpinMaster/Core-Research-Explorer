@@ -53,7 +53,7 @@ describe('SearchSuggestionsService', () => {
     vi.advanceTimersByTime(SUGGESTION_DEBOUNCE_MS);
 
     expect(fetchSuggestionTitles).toHaveBeenCalledTimes(1);
-    expect(fetchSuggestionTitles).toHaveBeenCalledWith('drone', 10);
+    expect(fetchSuggestionTitles).toHaveBeenCalledWith('title:drone*', 10);
     expect(service.suggestions()[0]?.label).toBe('drone delivery');
     expect(service.isLoading()).toBe(false);
   });
@@ -91,5 +91,26 @@ describe('SearchSuggestionsService', () => {
 
     expect(service.suggestions()).toEqual([]);
     expect(service.isLoading()).toBe(false);
+  });
+
+  it('serves repeated prefix queries from client cache without duplicate CORE requests', () => {
+    fetchSuggestionTitles.mockReturnValue(
+      of(['Last-Mile Delivery Networks', 'Parcel Delivery Optimization'])
+    );
+
+    service.requestSuggestions('deliv');
+    vi.advanceTimersByTime(SUGGESTION_DEBOUNCE_MS);
+    expect(fetchSuggestionTitles).toHaveBeenCalledTimes(1);
+    expect(fetchSuggestionTitles).toHaveBeenCalledWith('title:deliv*', 10);
+    expect(service.suggestions()[0]?.label).toBe('delivery');
+
+    // Clear and re-type the same prefix inside the cache TTL window
+    service.clear();
+    vi.advanceTimersByTime(SUGGESTION_DEBOUNCE_MS);
+    service.requestSuggestions('deliv');
+    vi.advanceTimersByTime(SUGGESTION_DEBOUNCE_MS);
+
+    expect(fetchSuggestionTitles).toHaveBeenCalledTimes(1);
+    expect(service.suggestions()[0]?.label).toBe('delivery');
   });
 });

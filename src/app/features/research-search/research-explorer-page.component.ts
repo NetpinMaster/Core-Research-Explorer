@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ResearchSearchStore } from '../../core/services/research-search.store';
 import { SearchSuggestionsService } from '../../core/services/search-suggestions.service';
 import { AnalyticsPanelComponent } from '../research-analytics/analytics-panel/analytics-panel.component';
@@ -57,7 +57,23 @@ import type {
     <div class="workspace">
       <div class="workspace__container">
         <div class="workspace__grid">
-          <section class="workspace__results" aria-label="Research results">
+          <section
+            class="workspace__results"
+            aria-label="Research results"
+            aria-live="polite"
+            [attr.aria-busy]="store.isLoading()"
+            data-testid="search-results-container"
+          >
+            <div
+              class="sr-only"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              data-testid="results-live-status"
+            >
+              {{ resultsLiveAnnouncement() }}
+            </div>
+
             <app-research-results-toolbar
               [activeQuery]="store.activeQuery()"
               [returnedCount]="store.papers().length"
@@ -82,9 +98,16 @@ import type {
                   (action)="onRetry()"
                 />
               } @else if (store.papers().length > 0) {
-                <div class="paper-list" data-testid="paper-results-list">
+                <div
+                  class="paper-list"
+                  role="list"
+                  aria-label="Retrieved research papers"
+                  aria-live="off"
+                  data-testid="paper-results-list"
+                >
                   @for (paper of store.papers(); track paper.id) {
                     <app-research-paper-card
+                      role="listitem"
                       [paper]="paper"
                       (inspectPaper)="openPaperDetail($event)"
                     />
@@ -181,6 +204,26 @@ export class ResearchExplorerPageComponent {
   protected readonly store = inject(ResearchSearchStore);
   protected readonly suggestionsService = inject(SearchSuggestionsService);
   protected readonly selectedPaper = signal<ResearchPaper | null>(null);
+
+  protected readonly resultsLiveAnnouncement = computed(() => {
+    const query = this.store.activeQuery();
+    if (this.store.isLoading()) {
+      return query ? `Loading papers for "${query}"...` : 'Loading papers...';
+    }
+    const apiError = this.store.apiError();
+    if (apiError) {
+      return `Unable to retrieve research papers. ${apiError.message}`;
+    }
+    if (!this.store.hasSearched()) {
+      return '';
+    }
+    const count = this.store.papers().length;
+    if (count === 0) {
+      return query ? `No matching research papers found for "${query}".` : 'No matching research papers found.';
+    }
+    const noun = count === 1 ? 'result' : 'results';
+    return query ? `Showing ${count} ${noun} for "${query}".` : `Showing ${count} ${noun}.`;
+  });
 
   protected onQueryDraftChange(draft: string): void {
     this.store.clearValidationError();

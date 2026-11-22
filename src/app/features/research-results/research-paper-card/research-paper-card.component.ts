@@ -66,6 +66,7 @@ import { assessMetadataCompleteness } from '../../../shared/utilities/metadata-c
             [href]="primaryLink()"
             target="_blank"
             rel="noopener noreferrer"
+            [attr.aria-label]="paper().title + ' (opens in a new tab)'"
           >
             {{ paper().title }}
           </a>
@@ -99,17 +100,26 @@ import { assessMetadataCompleteness } from '../../../shared/utilities/metadata-c
           <span
             class="paper-card__completeness tabular-nums"
             [title]="completeness().summary"
+            [attr.aria-label]="
+              'Metadata completeness: ' +
+              completeness().score +
+              ' of ' +
+              completeness().total +
+              '. ' +
+              completeness().summary
+            "
             data-testid="paper-completeness"
           >
             Metadata: {{ completeness().score }}/{{ completeness().total }}
           </span>
         </div>
 
-        <div class="paper-card__links">
+        <div class="paper-card__links" role="group" [attr.aria-label]="'Actions for ' + paper().title">
           <button
             type="button"
             class="paper-card__action-btn"
             (click)="inspectPaper.emit(paper())"
+            [attr.aria-label]="'View details for ' + paper().title"
             data-testid="paper-details-btn"
           >
             Details
@@ -133,6 +143,7 @@ import { assessMetadataCompleteness } from '../../../shared/utilities/metadata-c
               [href]="paper().downloadUrl"
               target="_blank"
               rel="noopener noreferrer"
+              [attr.aria-label]="'Open full text for ' + paper().title + ' (opens in a new tab)'"
             >
               Full text
             </a>
@@ -143,6 +154,7 @@ import { assessMetadataCompleteness } from '../../../shared/utilities/metadata-c
               [href]="paper().coreUrl"
               target="_blank"
               rel="noopener noreferrer"
+              [attr.aria-label]="'View CORE record for ' + paper().title + ' (opens in a new tab)'"
             >
               CORE record
             </a>
@@ -152,11 +164,12 @@ import { assessMetadataCompleteness } from '../../../shared/utilities/metadata-c
               [href]="paper().sourceUrl"
               target="_blank"
               rel="noopener noreferrer"
+              [attr.aria-label]="'View source for ' + paper().title + ' (opens in a new tab)'"
             >
               View source
             </a>
           }
-          <span class="sr-only" role="status" aria-live="polite">
+          <span class="sr-only" role="status" aria-live="polite" aria-atomic="true">
             {{ copied() ? 'Copied reference to clipboard.' : '' }}
           </span>
         </div>

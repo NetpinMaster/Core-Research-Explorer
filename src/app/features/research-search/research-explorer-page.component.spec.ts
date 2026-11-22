@@ -43,6 +43,18 @@ describe('ResearchExplorerPageComponent (Integration)', () => {
     form.dispatchEvent(new Event('submit'));
     fixture.detectChanges();
 
+    const resultsContainer = el.querySelector<HTMLElement>(
+      '[data-testid="search-results-container"]'
+    )!;
+    const liveStatus = el.querySelector<HTMLElement>('[data-testid="results-live-status"]')!;
+    expect(resultsContainer.getAttribute('aria-live')).toBe('polite');
+    expect(resultsContainer.getAttribute('aria-busy')).toBe('true');
+    expect(liveStatus.getAttribute('role')).toBe('status');
+    expect(liveStatus.getAttribute('aria-live')).toBe('polite');
+    expect(liveStatus.textContent?.trim()).toBe(
+      'Loading papers for "(drone AND (package OR delivery))"...'
+    );
+
     const req = httpMock.expectOne(
       (r) =>
         r.url === '/api/core/search' &&
@@ -73,6 +85,15 @@ describe('ResearchExplorerPageComponent (Integration)', () => {
       ],
     });
     fixture.detectChanges();
+
+    expect(resultsContainer.getAttribute('aria-busy')).toBe('false');
+    expect(liveStatus.textContent?.trim()).toBe(
+      'Showing 2 results for "(drone AND (package OR delivery))".'
+    );
+
+    const listEl = el.querySelector<HTMLElement>('[data-testid="paper-results-list"]')!;
+    expect(listEl.getAttribute('role')).toBe('list');
+    expect(el.querySelectorAll('app-research-paper-card[role="listitem"]').length).toBe(2);
 
     const cards = el.querySelectorAll('article.paper-card');
     expect(cards.length).toBe(2);

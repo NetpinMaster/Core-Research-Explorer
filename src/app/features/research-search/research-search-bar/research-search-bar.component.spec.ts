@@ -82,4 +82,35 @@ describe('ResearchSearchBarComponent', () => {
     fixture.detectChanges();
     expect(el.querySelector('[data-testid="search-suggestions-listbox"]')).toBeNull();
   });
+
+  it('exposes WCAG-compliant ARIA attributes on search input, search button, and control groups', () => {
+    const fixture = TestBed.createComponent(ResearchSearchBarComponent);
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    const input = el.querySelector<HTMLInputElement>('#research-query-input')!;
+    const submitBtn = el.querySelector<HTMLButtonElement>('[data-testid="search-submit-btn"]')!;
+    const clearBtn = el.querySelector<HTMLButtonElement>('[data-testid="search-clear-btn"]')!;
+    const examplesGroup = el.querySelector<HTMLElement>('.examples')!;
+
+    expect(submitBtn.getAttribute('aria-label')).toBe('Search CORE research papers');
+    expect(clearBtn.getAttribute('aria-label')).toBe('Clear search query and results');
+    expect(examplesGroup.getAttribute('role')).toBe('group');
+    expect(input.getAttribute('aria-haspopup')).toBe('listbox');
+    // aria-controls must not reference a missing listbox while closed
+    expect(input.getAttribute('aria-controls')).toBeNull();
+
+    fixture.componentRef.setInput('isLoading', true);
+    fixture.detectChanges();
+    expect(submitBtn.getAttribute('aria-label')).toBe('Searching CORE research papers');
+    expect(submitBtn.getAttribute('aria-busy')).toBe('true');
+
+    fixture.componentRef.setInput('isLoading', false);
+    fixture.componentRef.setInput('suggestions', [
+      { label: 'drone delivery', completedQuery: 'drone delivery', matchCount: 3 },
+    ]);
+    input.dispatchEvent(new FocusEvent('focus'));
+    fixture.detectChanges();
+    expect(input.getAttribute('aria-controls')).toBe('search-suggestions-listbox');
+  });
 });

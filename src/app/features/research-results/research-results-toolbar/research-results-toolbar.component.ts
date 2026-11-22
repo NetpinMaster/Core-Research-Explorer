@@ -23,7 +23,7 @@ const SORT_CHOICES: readonly SortChoice[] = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="toolbar">
-      <div class="toolbar__status" role="status" aria-live="polite">
+      <div class="toolbar__status" role="status" aria-live="polite" aria-atomic="true">
         @if (isLoading()) {
           <p class="toolbar__summary">
             Searching CORE for <span class="toolbar__query">"{{ activeQuery() }}"</span>...
@@ -80,6 +80,7 @@ const SORT_CHOICES: readonly SortChoice[] = [
           class="toolbar__export-btn"
           [disabled]="isLoading() || returnedCount() === 0"
           (click)="exportCsv.emit()"
+          aria-label="Export retrieved research papers as CSV"
           data-testid="export-csv-btn"
         >
           <svg

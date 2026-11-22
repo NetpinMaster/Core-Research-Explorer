@@ -85,4 +85,24 @@ describe('ResearchPaperCardComponent', () => {
     expect(el.querySelector('.paper-card__oa')).toBeNull();
     expect(el.querySelectorAll('a').length).toBe(0);
   });
+
+  it('provides unique paper-specific ARIA labels on card actions, links, and metadata completeness', () => {
+    const fixture = TestBed.createComponent(ResearchPaperCardComponent);
+    fixture.componentRef.setInput('paper', COMPLETE_PAPER);
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    const detailsBtn = el.querySelector<HTMLButtonElement>('[data-testid="paper-details-btn"]')!;
+    const copyBtn = el.querySelector<HTMLButtonElement>('[data-testid="paper-copy-btn"]')!;
+    const completeness = el.querySelector<HTMLElement>('[data-testid="paper-completeness"]')!;
+    const fullTextLink = el.querySelector<HTMLAnchorElement>('.paper-card__link--primary')!;
+
+    expect(detailsBtn.getAttribute('aria-label')).toBe(`View details for ${COMPLETE_PAPER.title}`);
+    expect(copyBtn.getAttribute('aria-label')).toBe(`Copy DOI for ${COMPLETE_PAPER.title}`);
+    expect(fullTextLink.getAttribute('aria-label')).toBe(
+      `Open full text for ${COMPLETE_PAPER.title} (opens in a new tab)`
+    );
+    expect(completeness.getAttribute('aria-label')).toContain('Metadata completeness:');
+    expect(el.querySelector('.paper-card__links')?.getAttribute('role')).toBe('group');
+  });
 });

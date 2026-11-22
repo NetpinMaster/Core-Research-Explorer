@@ -70,7 +70,36 @@ export function extractActivePrefixContext(rawInput: string): ParsedPrefixContex
   return {
     prefixBeforeToken,
     activeToken,
-    coreQuery: activeToken.toLowerCase(),
+    coreQuery: `title:${activeToken.toLowerCase()}*`,
+  };
+}
+
+export interface SuggestionDisplayParts {
+  readonly prefix: string;
+  readonly completion: string;
+}
+
+/**
+ * Splits a suggested query into the portion already typed by the user and the
+ * newly suggested completion suffix for safe, innerHTML-free visual highlighting.
+ */
+export function splitSuggestionDisplay(
+  completedQuery: string,
+  rawDraft: string
+): SuggestionDisplayParts {
+  const normalizedDraft = rawDraft.trimStart();
+  if (
+    normalizedDraft.length > 0 &&
+    completedQuery.toLowerCase().startsWith(normalizedDraft.toLowerCase())
+  ) {
+    return {
+      prefix: completedQuery.slice(0, normalizedDraft.length),
+      completion: completedQuery.slice(normalizedDraft.length),
+    };
+  }
+  return {
+    prefix: '',
+    completion: completedQuery,
   };
 }
 

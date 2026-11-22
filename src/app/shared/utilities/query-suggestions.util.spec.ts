@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   deriveQuerySuggestions,
   extractActivePrefixContext,
+  splitSuggestionDisplay,
 } from './query-suggestions.util';
 
 describe('query-suggestions.util', () => {
@@ -9,13 +10,13 @@ describe('query-suggestions.util', () => {
     expect(extractActivePrefixContext('dro')).toEqual({
       prefixBeforeToken: '',
       activeToken: 'dro',
-      coreQuery: 'dro',
+      coreQuery: 'title:dro*',
     });
 
     expect(extractActivePrefixContext('(drone AND deliv')).toEqual({
       prefixBeforeToken: '(drone AND ',
       activeToken: 'deliv',
-      coreQuery: 'deliv',
+      coreQuery: 'title:deliv*',
     });
   });
 
@@ -60,5 +61,16 @@ describe('query-suggestions.util', () => {
 
     expect(suggestions[0]?.label).toBe('delivery');
     expect(suggestions[0]?.completedQuery).toBe('drone AND delivery');
+  });
+
+  it('splits typed prefix from suggested completion suffix cleanly', () => {
+    expect(splitSuggestionDisplay('drone AND delivery', 'drone AND deliv')).toEqual({
+      prefix: 'drone AND deliv',
+      completion: 'ery',
+    });
+    expect(splitSuggestionDisplay('drone delivery', 'other')).toEqual({
+      prefix: '',
+      completion: 'drone delivery',
+    });
   });
 });
