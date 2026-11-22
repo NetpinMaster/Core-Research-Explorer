@@ -113,4 +113,27 @@ describe('SearchSuggestionsService', () => {
     expect(fetchSuggestionTitles).toHaveBeenCalledTimes(1);
     expect(service.suggestions()[0]?.label).toBe('delivery');
   });
+
+  it('supports external input observables directly via getSuggestionsStream', () => {
+    fetchSuggestionTitles.mockReturnValue(
+      of(['Robotics Perception Benchmarks', 'Robotics Control Policies'])
+    );
+
+    const externalInput$ = new Subject<string>();
+    const results: string[][] = [];
+    const sub = service.getSuggestionsStream(externalInput$, 200).subscribe((items) => {
+      results.push(items.map((item) => item.completedQuery));
+    });
+
+    externalInput$.next('robo');
+    vi.advanceTimersByTime(100);
+    externalInput$.next('robot');
+    vi.advanceTimersByTime(200);
+
+    expect(fetchSuggestionTitles).toHaveBeenCalledTimes(1);
+    expect(fetchSuggestionTitles).toHaveBeenCalledWith('title:robot*', 10);
+    expect(results[results.length - 1]).toContain('robotics');
+
+    sub.unsubscribe();
+  });
 });

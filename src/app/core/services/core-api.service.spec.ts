@@ -2,10 +2,13 @@ import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { Subject } from 'rxjs';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   httpErrorInterceptor,
   type ResearchApiError,
 } from '../interceptors/http-error.interceptor';
+import type { SearchSuggestion } from '../../shared/utilities/query-suggestions.util';
 import { CoreApiService } from './core-api.service';
 
 describe('CoreApiService', () => {
@@ -102,5 +105,85 @@ describe('CoreApiService', () => {
     expect(capturedErrors[0].kind).toBe('rate_limit');
     expect(capturedErrors[0].status).toBe(429);
     expect(capturedErrors[0].retryAfter).toBe('2026-11-21T14:00:00Z');
+  });
+
+  it('debounces user input and cancels stale CORE suggestion requests via switchMap', () => {
+    vi.useFakeTimers();
+    try {
+      const input$ = new Subject<string>();
+      const emissions: (readonly SearchSuggestion[])[] = [];
+      const sub = service
+        .getQuerySuggestions(input$, { debounceMs: 300, sampleLimit: 10, maxSuggestions: 4 })
+        .subscribe((items) => emissions.push(items));
+
+      // Rapid keystrokes within debounce window must not fire intermediate HTTP requests
+      input$.next('dro');
+      vi.advanceTimersByTime(100);
+      input$.next('dron');
+      vi.advanceTimersByTime(100);
+      input$.next('drone');
+      httpMock.expectNone((request) => request.url === '/api/core/search');
+
+      // Settling after debounce fires a single CORE title-wildcard query
+      vi.advanceTimersByTime(300);
+      const firstReq = httpMock.expectOne(
+        (request) =>
+          request.url === '/api/core/search' &&
+          request.params.get('q') === 'title:drone*' &&
+          request.params.get('limit') === '10'
+      );
+
+      // Newer settled input cancels the still-pending first request via switchMap
+      input$.next('drone AND deliv');
+      vi.advanceTimersByTime(300);
+      expect(firstReq.cancelled).toBe(true);
+
+      const secondReq = httpMock.expectOne(
+        (request) =>
+          request.url === '/api/core/search' &&
+          request.params.get('q') === 'title:deliv*' &&
+          request.params.get('limit') === '10'
+      );
+      secondReq.flush({
+        results: [
+          { id: 1, title: 'Autonomous Parcel Delivery Systems' },
+          { id: 2, title: 'Last-Mile Delivery Optimization' },
+        ],
+      });
+
+      expect(emissions[emissions.length - 1]?.[0]).toEqual({
+        label: 'delivery',
+        completedQuery: 'drone AND delivery',
+        matchCount: 2,
+      });
+
+      // Upstream error emits [] and keeps the stream alive for subsequent input
+      input$.next('quant');
+      vi.advanceTimersByTime(300);
+      const failedReq = httpMock.expectOne(
+        (request) =>
+          request.url === '/api/core/search' && request.params.get('q') === 'title:quant*'
+      );
+      failedReq.flush(
+        { error: { code: 'CORE_RATE_LIMIT', status: 429, message: 'Rate limited' } },
+        { status: 429, statusText: 'Too Many Requests' }
+      );
+      expect(emissions[emissions.length - 1]).toEqual([]);
+
+      input$.next('solar');
+      vi.advanceTimersByTime(300);
+      const recoveredReq = httpMock.expectOne(
+        (request) =>
+          request.url === '/api/core/search' && request.params.get('q') === 'title:solar*'
+      );
+      recoveredReq.flush({
+        results: [{ id: 3, title: 'Solar Energy Forecasting' }],
+      });
+      expect(emissions[emissions.length - 1]?.[0]?.completedQuery).toBe('solar energy');
+
+      sub.unsubscribe();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

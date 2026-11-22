@@ -10,6 +10,7 @@ import {
   Subject,
   switchMap,
   tap,
+  type Observable,
 } from 'rxjs';
 import {
   deriveQuerySuggestions,
@@ -43,38 +44,49 @@ export class SearchSuggestionsService {
   readonly isLoading = this._isLoading.asReadonly();
 
   constructor() {
-    this.input$
-      .pipe(
-        debounceTime(SUGGESTION_DEBOUNCE_MS),
-        distinctUntilChanged(
-          (prev, curr) => prev.trim().toLowerCase() === curr.trim().toLowerCase()
-        ),
-        switchMap((draft) => {
-          const context = extractActivePrefixContext(draft);
-          if (!context) {
-            this._isLoading.set(false);
-            return of<readonly SearchSuggestion[]>([]);
-          }
-
-          const cached = this.readCachedTitles(context.coreQuery);
-          if (cached) {
-            this._isLoading.set(false);
-            return of(deriveQuerySuggestions(context, cached, 6));
-          }
-
-          this._isLoading.set(true);
-          return this.coreApi.fetchSuggestionTitles(context.coreQuery, 10).pipe(
-            tap((titles) => this.writeCachedTitles(context.coreQuery, titles)),
-            map((titles) => deriveQuerySuggestions(context, titles, 6)),
-            catchError(() => of<readonly SearchSuggestion[]>([])),
-            finalize(() => this._isLoading.set(false))
-          );
-        }),
-        takeUntilDestroyed(this.destroyRef)
-      )
+    this.getSuggestionsStream(this.input$)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((items) => {
         this._suggestions.set(items);
       });
+  }
+
+  /**
+   * Creates a debounced, switchMap-managed Observable of CORE query suggestions
+   * for any user input stream (such as a Reactive Form control's valueChanges),
+   * backed by a bounded TTL prefix cache to reduce duplicate CORE requests.
+   */
+  getSuggestionsStream(
+    source$: Observable<string>,
+    debounceMs = SUGGESTION_DEBOUNCE_MS
+  ): Observable<readonly SearchSuggestion[]> {
+    return source$.pipe(
+      debounceTime(debounceMs),
+      distinctUntilChanged(
+        (prev, curr) => prev.trim().toLowerCase() === curr.trim().toLowerCase()
+      ),
+      switchMap((draft) => {
+        const context = extractActivePrefixContext(draft);
+        if (!context) {
+          this._isLoading.set(false);
+          return of<readonly SearchSuggestion[]>([]);
+        }
+
+        const cached = this.readCachedTitles(context.coreQuery);
+        if (cached) {
+          this._isLoading.set(false);
+          return of(deriveQuerySuggestions(context, cached, 6));
+        }
+
+        this._isLoading.set(true);
+        return this.coreApi.fetchSuggestionTitles(context.coreQuery, 10).pipe(
+          tap((titles) => this.writeCachedTitles(context.coreQuery, titles)),
+          map((titles) => deriveQuerySuggestions(context, titles, 6)),
+          catchError(() => of<readonly SearchSuggestion[]>([])),
+          finalize(() => this._isLoading.set(false))
+        );
+      })
+    );
   }
 
   requestSuggestions(rawDraft: string): void {
